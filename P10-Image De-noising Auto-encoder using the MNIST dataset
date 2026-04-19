@@ -1,0 +1,73 @@
+import pandas as pd [cite: 2]
+import numpy as np [cite: 3]
+import matplotlib.pyplot as plt [cite: 4]
+from tensorflow.keras.models import Model [cite: 5]
+from tensorflow.keras.layers import Input, Dense [cite: 6]
+from tensorflow.keras.optimizers import Adam [cite: 7]
+from sklearn.model_selection import train_test_split [cite: 11]
+
+# 1. Load and Preprocess Data
+df = pd.read_csv(r"C:\Users\cokre\Downloads\Compressed\mnist_train.csv") [cite: 8]
+X = df.drop("label", axis=1).values [cite: 9]
+X = X / 255.0 [cite: 10]
+
+# 2. Split Data and Add Noise
+x_train, x_test = train_test_split(X, test_size=0.2, random_state=42) [cite: 12]
+noise_factor = 0.5 [cite: 13]
+x_train_noisy = x_train + noise_factor * np.random.normal(size=x_train.shape) [cite: 14, 15]
+x_test_noisy = x_test + noise_factor * np.random.normal(size=x_test.shape) [cite: 16, 17]
+
+# Clip values to stay within [0, 1] range
+x_train_noisy = np.clip(x_train_noisy, 0., 1.) [cite: 19]
+x_test_noisy = np.clip(x_test_noisy, 0., 1.) [cite: 20]
+
+# 3. Build Auto-encoder Architecture
+input_dim = X.shape[1] # 784 [cite: 21, 128]
+input_layer = Input(shape=(input_dim,)) [cite: 22, 129]
+
+# Encoder [cite: 23, 130]
+encoded = Dense(128, activation='relu')(input_layer) [cite: 24, 131]
+encoded = Dense(64, activation='relu')(encoded) [cite: 24, 131]
+
+# Decoder [cite: 25, 132]
+decoded = Dense(128, activation='relu')(encoded) [cite: 27, 133]
+decoded = Dense(input_dim, activation='sigmoid')(decoded) [cite: 28, 133]
+
+# 4. Compile Model
+autoencoder = Model(input_layer, decoded) [cite: 30, 31, 135, 136]
+autoencoder.compile(optimizer=Adam(), loss='binary_crossentropy') [cite: 32, 137]
+
+# 5. Train Model
+autoencoder.fit(
+    x_train_noisy, x_train, [cite: 35]
+    epochs=10, [cite: 36]
+    batch_size=256, [cite: 37]
+    shuffle=True, [cite: 38]
+    validation_data=(x_test_noisy, x_test) [cite: 39]
+) [cite: 34, 40]
+
+# 6. Prediction and Visualization
+decoded_imgs = autoencoder.predict(x_test_noisy)
+n = 10 [cite: 63]
+plt.figure(figsize=(20, 6)) [cite: 71]
+
+for i in range(n): [cite: 72]
+    # Display Noisy Images
+    ax = plt.subplot(3, n, i + 1) [cite: 74]
+    plt.imshow(x_test_noisy[i].reshape(28, 28), cmap='gray') [cite: 85]
+    plt.title("Noisy") [cite: 86]
+    plt.axis('off') [cite: 87]
+
+    # Display Denoised Images
+    ax = plt.subplot(3, n, i + 1 + n) [cite: 89]
+    plt.imshow(decoded_imgs[i].reshape(28, 28), cmap='gray') [cite: 90]
+    plt.title("Denoised") [cite: 91]
+    plt.axis('off') [cite: 92]
+
+    # Display Original Images
+    ax = plt.subplot(3, n, i + 1 + 2 * n) [cite: 94]
+    plt.imshow(x_test[i].reshape(28, 28), cmap='gray') [cite: 95]
+    plt.title("Original") [cite: 96]
+    plt.axis('off') [cite: 97]
+
+plt.show() [cite: 98]
