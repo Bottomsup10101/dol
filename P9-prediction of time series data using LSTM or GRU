@@ -1,0 +1,66 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Input
+
+# Load dataset
+data = pd.read_csv("weatherHistory.csv")
+
+# Convert date column
+data['Formatted Date'] = pd.to_datetime(data['Formatted Date'])
+
+# Sort data by date
+data = data.sort_values('Formatted Date')
+
+# Select temperature column
+dataset = data[['Temperature (C)']].values
+
+# Normalize data
+scaler = MinMaxScaler()
+dataset_scaled = scaler.fit_transform(dataset)
+
+# Create sequence dataset
+def create_dataset(data, time_step=12):
+    X, y = [], []
+    for i in range(len(data) - time_step):
+        X.append(data[i:i + time_step])
+        y.append(data[i + time_step])
+    return np.array(X), np.array(y)
+
+time_step = 12
+X, y = create_dataset(dataset_scaled, time_step)
+
+# Split data
+split = int(len(X) * 0.8)
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+
+# Build LSTM model
+model = Sequential([
+    Input(shape=(time_step, 1)),
+    LSTM(50),
+    Dense(1)
+])
+
+# Compile model
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train model
+model.fit(X_train, y_train, epochs=10, batch_size=32)
+
+# Predict
+predictions = model.predict(X_test)
+
+# Inverse transform
+predictions = scaler.inverse_transform(predictions)
+y_test_actual = scaler.inverse_transform(y_test)
+
+# Plot results
+plt.figure(figsize=(10,5))
+plt.plot(y_test_actual, label="Actual Temp")
+plt.plot(predictions, label="Predicted Temp")
+plt.legend()
+plt.show()
