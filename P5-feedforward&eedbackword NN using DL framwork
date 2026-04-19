@@ -1,0 +1,52 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from sklearn.model_selection import train_test_split from sklearn.preprocessing import StandardScaler from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+
+data = load_iris()
+X = data.data y = data.target
+X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.2, random_state=42
+)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train) X_test = scaler.transform(X_test)
+
+fnn_model = keras.Sequential([
+layers.Dense(16, activation='relu', input_shape=(4,)), layers.Dense(12, activation='relu'),
+layers.Dense(3, activation='softmax')
+])
+fnn_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy']) history_fnn = fnn_model.fit(
+X_train, y_train, epochs=50, batch_size=8, validation_split=0.1
+)
+loss_fnn, acc_fnn = fnn_model.evaluate(X_test, y_test) pred_fnn = np.argmax(fnn_model.predict(X_test), axis=1)
+plt.figure()
+plt.plot(history_fnn.history['accuracy']) plt.plot(history_fnn.history['val_accuracy']) plt.title('FNN Accuracy') plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend(['Train', 'Validation']) plt.figure()v
+plt.plot(history_fnn.history['loss']) plt.plot(history_fnn.history['val_loss']) plt.title('FNN Loss') plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Validation']) plt.figure()
+plt.scatter(range(len(y_test)), y_test) plt.scatter(range(len(pred_fnn)), pred_fnn) plt.title('FNN Actual vs Predicted') plt.xlabel('Samples')
+plt.ylabel('Class')
+X_seq = np.random.rand(1000, 10, 1) y_seq = np.sum(X_seq, axis=1)
+X_train_seq, X_test_seq = X_seq[:800], X_seq[800:] y_train_seq, y_test_seq = y_seq[:800], y_seq[800:] rnn_model = keras.Sequential([
+layers.SimpleRNN(32, activation='tanh', input_shape=(10, 1)), layers.Dense(16, activation='relu'),
+layers.Dense(1)
+])
+rnn_model.compile(optimizer='adam', loss='mse', metrics=['mae']) history_rnn = rnn_model.fit(
+X_train_seq, y_train_seq, epochs=20, batch_size=16, validation_split=0.1
+)
+loss_rnn, mae_rnn = rnn_model.evaluate(X_test_seq, y_test_seq) pred_rnn = rnn_model.predict(X_test_seq)
+plt.figure()
+plt.plot(history_rnn.history['mae']) plt.plot(history_rnn.history['val_mae']) plt.title('RNN MAE') plt.xlabel('Epochs')
+plt.ylabel('MAE')
+plt.legend(['Train', 'Validation']) plt.figure()
+plt.plot(history_rnn.history['loss']) plt.plot(history_rnn.history['val_loss']) plt.title('RNN Loss') plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Validation']) plt.figure()
+plt.plot(y_test_seq[:50]) plt.plot(pred_rnn[:50])
+plt.title('RNN Actual vs Predicted') plt.xlabel('Samples') plt.ylabel('Value')
+plt.legend(['Actual', 'Predicted']) plt.show()
+print("FNN Accuracy:", acc_fnn) print("RNN MAE:", mae_rnn)
+print("FNN Predictions:", pred_fnn[:10]) print("RNN Predictions:", pred_rnn[:5])
