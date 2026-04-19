@@ -1,0 +1,121 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+
+# Device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Hyperparameters
+batch_size = 64
+lr = 0.0002
+epochs = 10
+latent_dim = 100
+
+# Load MNIST dataset
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
+
+dataset = datasets.MNIST(
+    root="./data",
+    train=True,
+    transform=transform,
+    download=True
+)
+
+loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# Generator
+class Generator(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(latent_dim, 128),
+            nn.ReLU(True),
+
+            nn.Linear(128, 256),
+            nn.ReLU(True),
+
+            nn.Linear(256, 28 * 28),
+            nn.Tanh()
+        )
+
+    def forward(self, z):
+        return self.model(z).view(-1, 1, 28, 28)
+
+# Discriminator
+class Discriminator(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Linear(28 * 28, 256),
+            nn.LeakyReLU(0.2),
+
+            nn.Linear(256, 128),
+            nn.LeakyReLU(0.2),
+
+            nn.Linear(128, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return self.model(x.view(-1, 28 * 28))
+
+# Initialize models
+G = Generator().to(device)
+D = Discriminator().to(device)
+
+# Loss and optimizers
+criterion = nn.BCELoss()
+opt_G = optim.Adam(G.parameters(), lr=lr)
+opt_D = optim.Adam(D.parameters(), lr=lr)
+
+# Training loop
+for epoch in range(epochs):
+    for real, _ in loader:
+        real = real.to(device)
+        batch = real.size(0)
+
+        real_labels = torch.ones(batch, 1).to(device)
+        fake_labels = torch.zeros(batch, 1).to(device)
+
+        # Train Discriminator
+        z = torch.randn(batch, latent_dim).to(device)
+        fake = G(z)
+
+        loss_real = criterion(D(real), real_labels)
+        loss_fake = criterion(D(fake.detach()), fake_labels)
+        loss_D = loss_real + loss_fake
+
+        opt_D.zero_grad()
+        loss_D.backward()
+        opt_D.step()
+
+        # Train Generator
+        z = torch.randn(batch, latent_dim).to(device)
+        fake = G(z)
+
+        loss_G = criterion(D(fake), real_labels)
+
+        opt_G.zero_grad()
+        loss_G.backward()
+        opt_G.step()
+
+    print(f"Epoch [{epoch+1}/{epochs}] Loss D: {loss_D:.4f}, Loss G: {loss_G:.4f}")
+
+# Generate images
+z = torch.randn(16, latent_dim).to(device)
+generated = G(z).detach().cpu()
+
+# Plot images
+fig, axes = plt.subplots(4, 4, figsize=(5, 5))
+
+for i, ax in enumerate(axes.flatten()):
+    ax.imshow(generated[i][0], cmap="gray")
+    ax.axis("off")
+
+plt.show()
