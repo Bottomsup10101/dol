@@ -1,0 +1,34 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def mp_neuron(x1, x2, w1, w2, threshold): net = w1*x1 + w2*x2
+if net >= threshold: return 1
+else:
+return 0
+
+inputs = np.array([ [0,0],
+[0,1],
+[1,0],
+[1,1]
+])
+
+w1 = 1
+w2 = -1
+threshold = 1 outputs = []
+
+for x in inputs:
+y = mp_neuron(x[0], x[1], w1, w2, threshold) outputs.append(y)
+outputs = np.array(outputs) print("Input 1 Input 2 Output") for i in range(len(inputs)):
+print(inputs[i][0], "	", inputs[i][1], "	", outputs[i])
+
+x_vals = inputs[:,0] y_vals = inputs[:,1]
+
+plt.figure(figsize=(6,6))
+plt.scatter(x_vals, y_vals, c=outputs, s=200)
+plt.xlabel("Input X1") plt.ylabel("Input X2")
+plt.title("ANDNOT Logic using McCulloch-Pitts Neuron")
+
+x_line = np.linspace(-0.5,1.5,100) y_line = (threshold - w1*x_line)/w2 plt.plot(x_line, y_line)
+
+plt.xlim(-0.5,1.5)
+plt.ylim(-0.5,1.5) plt.grid(True) plt.show()
